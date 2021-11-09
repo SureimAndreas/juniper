@@ -1,0 +1,226 @@
+-- Spine 1
+# Load balance
+set policy-options policy-statement LB term 1 then load-balance per-packet 
+set policy-options policy-statement LB term 1 then accept
+# export loopback
+set policy-options policy-statement Export-Lo term 1 from protocol direct
+set policy-options policy-statement Export-Lo term 1 from interface lo0.0
+set policy-options policy-statement Export-Lo term 1 then accept
+# router id
+set routing-options router-id 1.1.1.1
+set routing-options autonomous-system 64512
+set routing-options forwarding-table export LB
+set routing-options forwarding-table chained-composite-next-hop ingress evpn
+# underlay EBGP
+set protocols bgp group UNDERLAY type external
+set protocols bgp group UNDERLAY local-as 64512
+set protocols bgp group UNDERLAY neighbor 172.16.13.1 peer-as 64514
+set protocols bgp group UNDERLAY neighbor 172.16.14.1 peer-as 64515
+set protocols bgp group UNDERLAY neighbor 172.16.15.1 peer-as 64516
+set protocols bgp group UNDERLAY export Export-Lo
+set protocols bgp group UNDERLAY multipath multiple-as
+# overlay IBGP - EVPN
+set protocols bgp group OVERLAY type internal
+set protocols bgp group OVERLAY local-as 65530
+set protocols bgp group OVERLAY local-address 1.1.1.1
+set protocols bgp group OVERLAY cluster 1.1.1.1
+set protocols bgp group OVERLAY multipath
+set protocols bgp group OVERLAY neighbor 2.2.2.2
+set protocols bgp group OVERLAY neighbor 3.3.3.3
+set protocols bgp group OVERLAY neighbor 4.4.4.4
+set protocols bgp group OVERLAY neighbor 5.5.5.5
+set protocols bgp group OVERLAY family evpn signaling
+
+-- Spine 2
+# Load balance
+set policy-options policy-statement LB term 1 then load-balance per-packet 
+set policy-options policy-statement LB term 1 then accept
+# export loopback
+set policy-options policy-statement Export-Lo term 1 from protocol direct
+set policy-options policy-statement Export-Lo term 1 from interface lo0.0
+set policy-options policy-statement Export-Lo term 1 then accept
+# router id
+set routing-options router-id 2.2.2.2
+set routing-options autonomous-system 64513
+set routing-options forwarding-table export LB
+set routing-options forwarding-table chained-composite-next-hop ingress evpn
+# underlay EBGP
+set protocols bgp group UNDERLAY type external
+set protocols bgp group UNDERLAY local-as 64513
+set protocols bgp group UNDERLAY neighbor 172.16.23.1 peer-as 64514
+set protocols bgp group UNDERLAY neighbor 172.16.24.1 peer-as 64515
+set protocols bgp group UNDERLAY neighbor 172.16.25.1 peer-as 64516
+set protocols bgp group UNDERLAY export Export-Lo
+set protocols bgp group UNDERLAY multipath multiple-as
+# overlay IBGP - EVPN
+set protocols bgp group OVERLAY type internal
+set protocols bgp group OVERLAY local-as 65530
+set protocols bgp group OVERLAY local-address 2.2.2.2
+set protocols bgp group OVERLAY cluster 2.2.2.2
+set protocols bgp group OVERLAY multipath
+set protocols bgp group OVERLAY neighbor 1.1.1.1
+set protocols bgp group OVERLAY neighbor 3.3.3.3
+set protocols bgp group OVERLAY neighbor 4.4.4.4
+set protocols bgp group OVERLAY neighbor 5.5.5.5
+set protocols bgp group OVERLAY family evpn signaling
+
+-- leaf 1
+# Load balance
+set policy-options policy-statement LB term 1 then load-balance per-packet 
+set policy-options policy-statement LB term 1 then accept
+# export loopback
+set policy-options policy-statement Export-Lo term 1 from protocol direct
+set policy-options policy-statement Export-Lo term 1 from interface lo0.0
+set policy-options policy-statement Export-Lo term 1 then accept
+# router id
+set routing-options router-id 3.3.3.3
+set routing-options autonomous-system 64514
+set routing-options forwarding-table export LB
+set routing-options forwarding-table chained-composite-next-hop ingress evpn
+# underlay EBGP
+set protocols bgp group UNDERLAY type external
+set protocols bgp group UNDERLAY local-as 64514
+set protocols bgp group UNDERLAY neighbor 172.16.13.0 peer-as 64512
+set protocols bgp group UNDERLAY neighbor 172.16.23.0 peer-as 64513
+set protocols bgp group UNDERLAY export Export-Lo
+set protocols bgp group UNDERLAY multipath multiple-as
+# overlay IBGP - EVPN
+set protocols bgp group OVERLAY type internal
+set protocols bgp group OVERLAY local-as 65530
+set protocols bgp group OVERLAY local-address 3.3.3.3
+set protocols bgp group OVERLAY neighbor 1.1.1.1
+set protocols bgp group OVERLAY neighbor 2.2.2.2
+set protocols bgp group OVERLAY family evpn signaling
+# vlan - vni
+set vlans Data1 vlan-id 512 vxlan vni 20512 ingress-node-replication
+set vlans Data1 l3-interface irb.512
+set interfaces irb unit 512 family inet 10.99.55.200/24 virtual-gateway-address 10.99.55.1
+set interfaces irb unit 512 virtual-gateway-v4-mac 00:aa:11:bb:22:cc
+set interfaces xe-0/0/2 unit 0 family ethernet-switching interface-mode access
+set interfaces xe-0/0/2 unit 0 family ethernet-switching vlan members Data1
+# enable evpn
+set protocols evpn encapsulation vxlan
+set protocols evpn extended-vni-list all
+set protocols evpn multicast-mode ingress-replication
+# enable vxlan
+set switch-options vtep-source-interface lo0.0
+set switch-options route-distinguisher 3.3.3.3:500
+set switch-options vrf-target target:65530:500
+# igmp
+set protocols igmp interface irb.512
+set protocols igmp-snooping vlan Data1 l2-querier source-address 10.199.55.200
+set protocols igmp-snooping vlan Data1 proxy
+# pim
+set protocols pim rp static address 10.99.55.254
+set protocols pim interface irb.512 distributed-dr
+
+-- leaf 2
+# Load balance
+set policy-options policy-statement LB term 1 then load-balance per-packet 
+set policy-options policy-statement LB term 1 then accept
+# export loopback
+set policy-options policy-statement Export-Lo term 1 from protocol direct
+set policy-options policy-statement Export-Lo term 1 from interface lo0.0
+set policy-options policy-statement Export-Lo term 1 then accept
+# router id
+set routing-options router-id 4.4.4.4
+set routing-options autonomous-system 64515
+set routing-options forwarding-table export LB
+set routing-options forwarding-table chained-composite-next-hop ingress evpn
+# underlay EBGP
+set protocols bgp group UNDERLAY type external
+set protocols bgp group UNDERLAY local-as 64515
+set protocols bgp group UNDERLAY neighbor 172.16.14.0 peer-as 64512
+set protocols bgp group UNDERLAY neighbor 172.16.24.0 peer-as 64513
+set protocols bgp group UNDERLAY export Export-Lo
+set protocols bgp group UNDERLAY multipath multiple-as
+# overlay IBGP - EVPN
+set protocols bgp group OVERLAY type internal
+set protocols bgp group OVERLAY local-as 65530
+set protocols bgp group OVERLAY local-address 4.4.4.4
+set protocols bgp group OVERLAY neighbor 1.1.1.1
+set protocols bgp group OVERLAY neighbor 2.2.2.2
+set protocols bgp group OVERLAY family evpn signaling
+# vlan - vni
+set vlans Data1 vlan-id 512 vxlan vni 20512 ingress-node-replication
+set vlans Data2 vlan-id 513 vxlan vni 20513 ingress-node-replication
+set vlans Data1 l3-interface irb.512
+set interfaces irb unit 512 family inet 10.99.55.201/24 virtual-gateway-address 10.99.55.1
+set interfaces irb unit 512 virtual-gateway-v4-mac 00:aa:11:bb:22:cc
+set vlans Data1 l3-interface irb.513
+set interfaces irb unit 513 family inet 10.99.54.201/24 virtual-gateway-address 10.99.54.1
+set interfaces irb unit 513 virtual-gateway-v4-mac 00:a1:11:bb:22:cc
+set interfaces xe-0/0/2 unit 0 family ethernet-switching interface-mode access
+set interfaces xe-0/0/2 unit 0 family ethernet-switching vlan members Data1
+set interfaces xe-0/0/3 unit 0 family ethernet-switching interface-mode access
+set interfaces xe-0/0/3 unit 0 family ethernet-switching vlan members Data2
+# enable evpn
+set protocols evpn encapsulation vxlan
+set protocols evpn extended-vni-list all
+set protocols evpn multicast-mode ingress-replication
+# enable vxlan
+set switch-options vtep-source-interface lo0.0
+set switch-options route-distinguisher 4.4.4.4:500
+set switch-options vrf-target target:65530:500
+# igmp
+set protocols igmp interface irb.512
+set protocols igmp interface irb.513
+set protocols igmp-snooping vlan Data1 l2-querier source-address 10.199.55.201
+set protocols igmp-snooping vlan Data2 l2-querier source-address 10.199.54.201
+set protocols igmp-snooping vlan Data1 proxy
+set protocols igmp-snooping vlan Data2 proxy
+# pim
+set protocols pim rp static address 10.99.55.254
+set protocols pim interface irb.512 distributed-dr
+set protocols pim rp static address 10.99.54.254
+set protocols pim interface irb.513 distributed-dr
+
+-- leaf 3
+# Load balance
+set policy-options policy-statement LB term 1 then load-balance per-packet 
+set policy-options policy-statement LB term 1 then accept
+# export loopback
+set policy-options policy-statement Export-Lo term 1 from protocol direct
+set policy-options policy-statement Export-Lo term 1 from interface lo0.0
+set policy-options policy-statement Export-Lo term 1 then accept
+# router id
+set routing-options router-id 5.5.5.5
+set routing-options autonomous-system 64516
+set routing-options forwarding-table export LB
+set routing-options forwarding-table chained-composite-next-hop ingress evpn
+# underlay EBGP
+set protocols bgp group UNDERLAY type external
+set protocols bgp group UNDERLAY local-as 64516
+set protocols bgp group UNDERLAY neighbor 172.16.15.0 peer-as 64512
+set protocols bgp group UNDERLAY neighbor 172.16.25.0 peer-as 64513
+set protocols bgp group UNDERLAY export Export-Lo
+set protocols bgp group UNDERLAY multipath multiple-as
+# overlay IBGP - EVPN
+set protocols bgp group OVERLAY type internal
+set protocols bgp group OVERLAY local-as 65530
+set protocols bgp group OVERLAY local-address 5.5.5.5
+set protocols bgp group OVERLAY neighbor 1.1.1.1
+set protocols bgp group OVERLAY neighbor 2.2.2.2
+set protocols bgp group OVERLAY family evpn signaling
+# vlan - vni
+set vlans Data2 vlan-id 513 vxlan vni 20513 ingress-node-replication
+set vlans Data1 l3-interface irb.513
+set interfaces irb unit 513 family inet 10.99.54.202/24 virtual-gateway-address 10.99.54.1
+set interfaces irb unit 513 virtual-gateway-v4-mac 00:a1:11:bb:22:cc
+set interfaces xe-0/0/2 unit 0 family ethernet-switching interface-mode access
+set interfaces xe-0/0/2 unit 0 family ethernet-switching vlan members Data2
+# enable evpn
+set protocols evpn encapsulation vxlan
+set protocols evpn extended-vni-list all
+set protocols evpn multicast-mode ingress-replication
+# enable vxlan
+set switch-options vtep-source-interface lo0.0
+set switch-options route-distinguisher 5.5.5.5:500
+set switch-options vrf-target target:65530:500
+# igmp
+set protocols igmp interface irb.513
+set protocols igmp-snooping vlan Data2 l2-querier source-address 10.199.55.202
+set protocols igmp-snooping vlan Data2 proxy
+# pim
+set protocols pim rp static address 10.99.54.254
+set protocols pim interface irb.513 distributed-dr
